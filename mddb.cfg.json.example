@@ -1,0 +1,8 @@
+{
+    "type": "mysql",
+    "server": "",
+    "port": "",
+    "username": "",
+    "password": "",
+    "database": ""
+}
