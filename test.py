@@ -24,10 +24,10 @@ def test_request():
     #fout = open('test_response.html', 'wb')
     answer = requests.post(url, data=json.dumps(data), headers=headers) # отправка запроса методом post. Data преобразуется из словаря в json.
     if answer.status_code != 200:
-        print('Invalid response: %d for %s' % (answer.status_code, url))
+        print('Invalid response: %d for %s\n    %s' % (answer.status_code, url, answer.content))
         #fout.write(answer.content)
         #fout.close()
-        exit(1)
+        return
     content = json.loads(answer.content)  # преобразование из формата json в словарь
     print('Response:', content)
     #fout.write(answer.content)
@@ -39,21 +39,20 @@ def test_my_requests():
     print('Request:', data)
     answer = requests.post(url, data=json.dumps(data), headers=headers)
     if answer.status_code != 200:
-        print('Invalid response: %d for %s' % (answer.status_code, url))
-        exit(1)
+        print('Invalid response: %d for %s\n    %s' % (answer.status_code, url, answer.content))
+        return
     content = json.loads(answer.content)
     print('Response:', content)
 
-def test_download():
+def test_download(filename):
     print(' ==== test_download ====')
-    url = 'http://127.0.0.1:5000/api/data/somefile.txt'
+    url = 'http://127.0.0.1:5000/api/data/'+filename
     print('Request:', data)
     answer = requests.post(url, data=json.dumps(data), headers=headers)
     if answer.status_code != 200:
-        print('Invalid response: %d for %s' % (answer.status_code, url))
-        exit(1)
-    content = json.loads(answer.content)
-    print('Response:', content)
+        print('Invalid response: %d for %s\n    %s' % (answer.status_code, url, answer.content))
+        return
+    print('Response:', answer.content)
 
 def test_request_status(uuid):
     print(' ==== test_request_status ====')
@@ -61,13 +60,13 @@ def test_request_status(uuid):
     print('Request:', data)
     answer = requests.post(url, data=json.dumps(data), headers=headers)
     if answer.status_code != 200:
-        print('Invalid response: %d for %s' % (answer.status_code, url))
-        exit(1)
+        print('Invalid response: %d for %s\n    %s' % (answer.status_code, url, answer.content))
+        return
     content = json.loads(answer.content)
     print('Response:', content)
 
 if __name__ == '__main__':
     test_request()
     test_my_requests()
-    test_request_status('63814534-9d59-41f7-befd-ae1a1ff768d4')
-    test_download()
+    test_request_status('60a1fa84-3aa7-46a8-a17e-5a99336b8d69')
+    test_download('60a1fa84-3aa7-46a8-a17e-5a99336b8d69.txt')

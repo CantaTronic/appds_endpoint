@@ -5,6 +5,7 @@ import kcdc
 import txtwriter
 import hashlib
 import uuid
+import os
 import sys
 from read_config import read_config
 
@@ -17,6 +18,8 @@ except Exception:
     print('Cannot load password salt', file=sys.stderr)
     exit(1)
 
+formats = { 'ASCII': '.txt', 'ROOT': '.root', 'HDF5': '.hdf5' }
+
 @app.route('/', methods=['GET'])
 def home():
     return '<h1>Test</h1><p>Test test test.</p>'
@@ -27,8 +30,8 @@ def api_doc():
 
 @app.route('/api/my_requests/', methods=['POST'])
 def api_my_requests():
-    content = flask.request.json
-    user_id = get_user_id(content)
+    req = flask.request.json
+    user_id = get_user_id(req)
     sel = mddb.sqlalchemy.select([mddb.request.c.uuid, mddb.request.c.status, mddb.request.c.format])
     sel = sel.where(mddb.request.c.user_id == user_id)
     result = mddb.conn.execute(sel)
@@ -39,8 +42,8 @@ def api_my_requests():
 
 @app.route('/api/request_status/<string:request_uuid>/', methods=['POST'])
 def api_request_status(request_uuid):
-    content = flask.request.json
-    user_id = get_user_id(content)
+    req = flask.request.json
+    user_id = get_user_id(req)
     sel = mddb.sqlalchemy.select([mddb.request.c.uuid, mddb.request.c.status, mddb.request.c.format])
     sel = sel.where(mddb.request.c.uuid == request_uuid)
     sel = sel.where(mddb.request.c.user_id == user_id)
@@ -51,58 +54,57 @@ def api_request_status(request_uuid):
 
 @app.route('/api/data/<string:filename>', methods=['POST'])
 def api_download(filename):
-    content = flask.request.json
-    user_id = get_user_id(content)
-    flask.abort(501, 'Not implemented yet')
-    # TODO download a file
+    req = flask.request.json
+    user_id = get_user_id(req)
+    #flask.abort(501, 'Not implemented yet')
+    # TODO check whether file exists and belongs to the user
+    path = os.path.abspath(os.path.join(os.getcwd(), 'data'))
+    return flask.send_from_directory(path, filename)
 
 @app.route('/api/request/', methods=['POST'])
 def api_request():
-    content = flask.request.json
-    user_id = get_user_id(content)
-    if not 'format' in content:
+    req = flask.request.json
+    user_id = get_user_id(req)
+    if not 'format' in req:
         flask.abort(400, 'No \'format\' provided')
-    fmt = content['format'].upper()
-    if fmt != 'ASCII' and fmt != 'ROOT' and fmt != 'HDF5':
-        flask.abort(401, 'Invalid \'format\'')
-    request_uuid = str(uuid.uuid4())
+    req['format'] = req['format'].upper()
+    if req['format'] not in formats:
+        flask.abort(400, 'Invalid \'format\'')
+    req['uuid'] = str(uuid.uuid4())
+    # TODO check UUID collisions
     ins = mddb.request.insert().values(
-        uuid=request_uuid,
+        uuid=req['uuid'],
         user_id=user_id,
-        format=fmt,
-        status=1
+        format=req['format'],
+        status='processing'
     )
     mddb.conn.execute(ins)
-    # TODO check UUID collisions
+    # TODO: async start task
+    get_data(req)
     reply = {}
-    reply['request_id'] = request_uuid
-    #reply['format'] = fmt
+    reply['request_uuid'] = req['uuid']
     #reply['num_events'] = nev
     #reply['event_uuids'] = uuids
-    reply['file_url'] = 'api/data/'+request_uuid
-    if fmt == 'ASCII':
-        reply['file_url'] += '.txt'
-    elif fmt == 'ROOT':
-        reply['file_url'] += '.root'
-    elif fmt == 'HDF5':
-        reply['file_url'] += '.hdf5'
+    reply['file_url'] = 'api/data/'+req['uuid']+formats[req['format']]
     return flask.jsonify(reply)
-    # TODO: start async task
-    #sel = mddb.sqlalchemy.select([mddb.event.c.uuid])
-    #if 'start_time' in content:
-        #sel = sel.where(mddb.event.c.ts >= content['start_time'])
-    #if 'end_time' in content:
-        #sel = sel.where(mddb.event.c.ts < content['end_time'])
-    #result = mddb.conn.execute(sel)
-    ##uuids = []
-    #nev = 0
-    #fout = txtwriter.TxtWriter('tmp.txt')
-    #for row in result:
-        #uuid = row[0]
-        ##uuids.append(uuid)
-        #nev += 1
-        #evt = kcdc.data.find_one( {'general.UUID': uuid} )
-        #fout.write(evt)
+
+def get_data(j):
+    sel = mddb.sqlalchemy.select([mddb.event.c.uuid])
+    if 'start_time' in j:
+        sel = sel.where(mddb.event.c.ts >= j['start_time'])
+    if 'end_time' in j:
+        sel = sel.where(mddb.event.c.ts < j['end_time'])
+    result = mddb.conn.execute(sel)
+    nev = 0
+    fout = txtwriter.TxtWriter('data/'+j['uuid']+formats[j['format']])
+    for row in result:
+        uuid = row[0]
+        nev += 1
+        evt = kcdc.data.find_one( {'general.UUID': uuid} )
+        fout.write(evt)
+    upd = mddb.request.update().values(status='completed')
+    upd = upd.where(mddb.request.c.uuid == j['uuid'])
+    mddb.conn.execute(upd)
 
 def get_user_id(j):
     if not 'username' in j:
@@ -118,23 +120,8 @@ def get_user_id(j):
     return int(res[mddb.user.c.id])
 
 def format_req(row):
-    req = { 'uuid': row['uuid'] }
-    status = row['status']
-    if status == 1:
-        status = 'processing'
-    elif status == 2:
-        status = 'completed'
-    elif status == 3:
-        status = 'failed'
-    req['status'] = status
-    fmt = row['format']
-    req['file_url'] = 'api/data/'+row['uuid']
-    if fmt == 'ASCII':
-        req['file_url'] += '.txt'
-    elif fmt == 'ROOT':
-        req['file_url'] += '.root'
-    elif fmt == 'HDF5':
-        req['file_url'] += '.hdf5'
+    req = { 'uuid': row['uuid'], 'status': row['status'] }
+    req['file_url'] = 'api/data/'+row['uuid']+formats[row['format']]
     return req
 
 if __name__ == '__main__':

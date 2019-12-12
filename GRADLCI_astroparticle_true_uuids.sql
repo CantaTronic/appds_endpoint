@@ -182,7 +182,7 @@ CREATE TABLE `request` (
   `uuid` varchar(36) NOT NULL,
   `user_id` int(11) unsigned NOT NULL,
   `format` varchar(5) NOT NULL,
-  `status` tinyint(3) unsigned NOT NULL,
+  `status` varchar(10) NOT NULL,
   PRIMARY KEY (`uuid`),
   KEY `user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -194,7 +194,7 @@ CREATE TABLE `request` (
 
 LOCK TABLES `request` WRITE;
 /*!40000 ALTER TABLE `request` DISABLE KEYS */;
-INSERT INTO `request` VALUES ('63814534-9d59-41f7-befd-ae1a1ff768d4',1,'ASCII',1);
+INSERT INTO `request` VALUES ('60a1fa84-3aa7-46a8-a17e-5a99336b8d69',1,'ASCII','completed');
 /*!40000 ALTER TABLE `request` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -306,4 +306,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-12-12 10:20:25
+-- Dump completed on 2019-12-12 15:44:56
