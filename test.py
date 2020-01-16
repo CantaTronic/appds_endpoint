@@ -66,7 +66,7 @@ def test_request_status(uuid):
     print('Response:', content)
 
 if __name__ == '__main__':
-    test_request()
+    #test_request()
     test_my_requests()
     test_request_status('60a1fa84-3aa7-46a8-a17e-5a99336b8d69')
     test_download('60a1fa84-3aa7-46a8-a17e-5a99336b8d69.txt')

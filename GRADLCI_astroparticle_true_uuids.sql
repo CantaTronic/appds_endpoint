@@ -19,7 +19,7 @@
 -- Current Database: `GRADLCI_astroparticle`
 --
 
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ `GRADLCI_astroparticle` /*!40100 DEFAULT CHARACTER SET utf8 */;
+-- CREATE DATABASE IF NOT EXISTS `GRADLCI_astroparticle` DEFAULT CHARACTER SET utf8;
 
 USE `GRADLCI_astroparticle`;
 
@@ -172,33 +172,6 @@ INSERT INTO `particle` VALUES (0,'unknown');
 UNLOCK TABLES;
 
 --
--- Table structure for table `request`
---
-
-DROP TABLE IF EXISTS `request`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `request` (
-  `uuid` varchar(36) NOT NULL,
-  `user_id` int(11) unsigned NOT NULL,
-  `format` varchar(5) NOT NULL,
-  `status` varchar(10) NOT NULL,
-  PRIMARY KEY (`uuid`),
-  KEY `user_id` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `request`
---
-
-LOCK TABLES `request` WRITE;
-/*!40000 ALTER TABLE `request` DISABLE KEYS */;
-INSERT INTO `request` VALUES ('60a1fa84-3aa7-46a8-a17e-5a99336b8d69',1,'ASCII','completed');
-/*!40000 ALTER TABLE `request` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `storage`
 --
 
@@ -245,32 +218,6 @@ LOCK TABLES `type` WRITE;
 /*!40000 ALTER TABLE `type` DISABLE KEYS */;
 INSERT INTO `type` VALUES (0,'kascade_exp');
 /*!40000 ALTER TABLE `type` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `user`
---
-
-DROP TABLE IF EXISTS `user`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `user` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) NOT NULL,
-  `pass_sha1` varchar(40) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `user`
---
-
-LOCK TABLES `user` WRITE;
-/*!40000 ALTER TABLE `user` DISABLE KEYS */;
-INSERT INTO `user` VALUES (1,'test_user','529f6296f1670ae4ba05bffe731c2293bac01186');
-/*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --

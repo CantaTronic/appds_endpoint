@@ -1,6 +1,7 @@
 
 import flask
 import mddb
+import userdb
 import kcdc
 import txtwriter
 import hashlib
@@ -32,9 +33,9 @@ def api_doc():
 def api_my_requests():
     req = flask.request.json
     user_id = get_user_id(req)
-    sel = mddb.sqlalchemy.select([mddb.request.c.uuid, mddb.request.c.status, mddb.request.c.format])
-    sel = sel.where(mddb.request.c.user_id == user_id)
-    result = mddb.conn.execute(sel)
+    sel = userdb.sqlalchemy.select([userdb.request.c.uuid, userdb.request.c.status, userdb.request.c.format])
+    sel = sel.where(userdb.request.c.user_id == user_id)
+    result = userdb.conn.execute(sel)
     reply = { 'requests': [] }
     for row in result:
         reply['requests'].append(format_req(row))
@@ -44,10 +45,10 @@ def api_my_requests():
 def api_request_status(request_uuid):
     req = flask.request.json
     user_id = get_user_id(req)
-    sel = mddb.sqlalchemy.select([mddb.request.c.uuid, mddb.request.c.status, mddb.request.c.format])
-    sel = sel.where(mddb.request.c.uuid == request_uuid)
-    sel = sel.where(mddb.request.c.user_id == user_id)
-    res = mddb.conn.execute(sel).fetchone()
+    sel = userdb.sqlalchemy.select([userdb.request.c.uuid, userdb.request.c.status, userdb.request.c.format])
+    sel = sel.where(userdb.request.c.uuid == request_uuid)
+    sel = sel.where(userdb.request.c.user_id == user_id)
+    res = userdb.conn.execute(sel).fetchone()
     if res is None:
         flask.abort(404, 'No request '+request_uuid)
     return flask.jsonify(format_req(res))
@@ -72,13 +73,13 @@ def api_request():
         flask.abort(400, 'Invalid \'format\'')
     req['uuid'] = str(uuid.uuid4())
     # TODO check UUID collisions
-    ins = mddb.request.insert().values(
+    ins = userdb.request.insert().values(
         uuid=req['uuid'],
         user_id=user_id,
         format=req['format'],
         status='processing'
     )
-    mddb.conn.execute(ins)
+    userdb.conn.execute(ins)
     # TODO: async start task
     get_data(req)
     reply = {}
@@ -102,22 +103,23 @@ def get_data(j):
         nev += 1
         evt = kcdc.data.find_one( {'general.UUID': uuid} )
         fout.write(evt)
-    upd = mddb.request.update().values(status='completed')
-    upd = upd.where(mddb.request.c.uuid == j['uuid'])
-    mddb.conn.execute(upd)
+    upd = userdb.request.update().values(status='completed')
+    upd = upd.where(userdb.request.c.uuid == j['uuid'])
+    userdb.conn.execute(upd)
 
 def get_user_id(j):
     if not 'username' in j:
         flask.abort(400, 'No \'username\' provided')
     if not 'password' in j:
         flask.abort(400, 'No \'password\' provided')
-    sel = mddb.sqlalchemy.select([mddb.user.c.id])
-    sel = sel.where(mddb.user.c.name == j['username'])
-    sel = sel.where(mddb.user.c.pass_sha1 == hashlib.sha1((j['password']+salt).encode()).hexdigest())
-    res = mddb.conn.execute(sel).fetchone()
+    sel = userdb.sqlalchemy.select([userdb.user.c.id])
+    sel = sel.where(userdb.user.c.name == j['username'])
+    pass_hash = hashlib.sha1((j['username']+j['password']+salt).encode()).hexdigest()
+    sel = sel.where(userdb.user.c.pass_sha1 == pass_hash)
+    res = userdb.conn.execute(sel).fetchone()
     if res is None:
         flask.abort(401, 'Cannot authenticate, invalid username or password')
-    return int(res[mddb.user.c.id])
+    return int(res[userdb.user.c.id])
 
 def format_req(row):
     req = { 'uuid': row['uuid'], 'status': row['status'] }
